@@ -47,21 +47,21 @@ s = requests.Session()
 
 
 def get_tbs(bduss):
-    logger.info("获取tbs开始")
+    logger.info("开始获取tbs")
     headers = copy.copy(HEADERS)
     headers.update({COOKIE: EMPTY_STR.join([BDUSS, EQUAL, bduss])})
     try:
         tbs = s.get(url=TBS_URL, headers=headers, timeout=5).json()[TBS]
     except Exception as e:
         logger.error("获取tbs出错" + e)
-        logger.info("重新获取tbs开始")
+        logger.info("开始重新获取tbs")
         tbs = s.get(url=TBS_URL, headers=headers, timeout=5).json()[TBS]
-    logger.info("获取tbs结束")
+    logger.info("获取tbs完成")
     return tbs
 
 
 def get_favorite(bduss):
-    logger.info("获取关注的贴吧开始")
+    logger.info("开始获取关注的贴吧")
     # 客户端关注的贴吧
     returnData = {}
     i = 1
@@ -144,7 +144,7 @@ def get_favorite(bduss):
                     t.append(j)
         else:
             t.append(i)
-    logger.info("获取关注的贴吧结束")
+    logger.info("共获取到【"+str(len(t))+"】个关注的贴吧")
     return t
 
 
@@ -158,13 +158,18 @@ def encodeData(data):
     return data
 
 
-def client_sign(bduss, tbs, fid, kw):
+def client_sign(bduss, tbs, fid, kw, idx, count):
     # 客户端签到
-    logger.info("开始签到贴吧：" + kw)
+    print("【" + kw +"】吧，开始签到("+str(idx+1)+"/"+str(count)+")")
     data = copy.copy(SIGN_DATA)
     data.update({BDUSS: bduss, FID: fid, KW: kw, TBS: tbs, TIMESTAMP: str(int(time.time()))})
     data = encodeData(data)
     res = s.post(url=SIGN_URL, data=data, timeout=5).json()
+    # print(res)
+    if res['error_code'] == '0':
+        print("签到成功，你是第"+res['user_info']['user_sign_rank']+"个签到的")
+    if res['error_code'] == '160002':
+        print(res['error_msg'])
     return res
 
 
@@ -174,14 +179,15 @@ def main():
         if(len(i) <= 0):
             logger.info("未检测到BDUSS")
             continue
-        logger.info("开始签到第" + str(n) + "个用户" + i)
+        logger.info("第" + str(n+1) + "个用户开始签到" )
         tbs = get_tbs(i)
         favorites = get_favorite(i)
-        for j in favorites:
+        count = len(favorites)
+        for idx,j in enumerate(favorites):
             time.sleep(random.randint(1,5))
-            client_sign(i, tbs, j["id"], j["name"])
-        logger.info("完成第" + str(n) + "个用户签到")
-    logger.info("所有用户签到结束")
+            client_sign(i, tbs, j["id"], j["name"],idx,count)
+        logger.info("第" + str(n+1) + "个用户签到完成")
+    logger.info("所有用户签到完成")
 
 
 if __name__ == '__main__':
